@@ -6,7 +6,25 @@ import cv2
 import glob
 from utils import *
 
+def augment_set(set_x,set_y, generator, num_augmented_images):
+    tensor_set = tf.expand_dims(set_x, 3)
+    out_set_x = set_x.copy()
+    out_set_y = set_y.copy()
+    out_set_x = np.resize(out_set_x, (np.shape(out_set_x)[0]+np.shape(out_set_x)[0]*num_augmented_images, np.shape(out_set_x)[1], np.shape(out_set_x)[2]))
+    out_set_y = np.resize(out_set_y, (np.shape(out_set_y)[0]+np.shape(out_set_y)[0]*num_augmented_images),)
+    for i in range(set_x.shape[0]):
+        it = generator.flow(tf.expand_dims(tensor_set[i], 0), batch_size=1)
+        for j in range(num_augmented_images):
+            # generate batch of images
+            batch = it.next()
+            out_set_x[np.shape(set_x)[0]+num_augmented_images*i+j] = batch[0].astype('uint8')[:,:,0]
+            out_set_y[np.shape(set_x)[0]+num_augmented_images*i+j] = set_y[i]
+    return out_set_x, out_set_y
+
 np.random.seed(42)
+
+#create a datagenerator
+datagen = keras.preprocessing.image.ImageDataGenerator(rotation_range=20,width_shift_range=0.15, height_shift_range=0.15, horizontal_flip=True)
 
 # load images
 images_without_bgr = [cv2.imread(file) for file in glob.glob("train/without_mask/*.jpg")]
