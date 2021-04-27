@@ -10,7 +10,8 @@ def augment_set(set_x,set_y, generator, num_augmented_images):
     tensor_set = tf.expand_dims(set_x, 3)
     out_set_x = set_x.copy()
     out_set_y = set_y.copy()
-    out_set_x = np.resize(out_set_x, (np.shape(out_set_x)[0]+np.shape(out_set_x)[0]*num_augmented_images, np.shape(out_set_x)[1], np.shape(out_set_x)[2]))
+    out_set_x = np.resize(out_set_x, (np.shape(out_set_x)[0]+np.shape(out_set_x)[0]*num_augmented_images,
+                                      np.shape(out_set_x)[1], np.shape(out_set_x)[2]))
     out_set_y = np.resize(out_set_y, (np.shape(out_set_y)[0]+np.shape(out_set_y)[0]*num_augmented_images),)
     for i in range(set_x.shape[0]):
         it = generator.flow(tf.expand_dims(tensor_set[i], 0), batch_size=1)
@@ -21,10 +22,14 @@ def augment_set(set_x,set_y, generator, num_augmented_images):
             out_set_y[np.shape(set_x)[0]+num_augmented_images*i+j] = set_y[i]
     return out_set_x, out_set_y
 
+def one_hot(n_classes, y):
+    return np.eye(n_classes)[y]
+
 np.random.seed(42)
 
 #create a datagenerator
-datagen = keras.preprocessing.image.ImageDataGenerator(rotation_range=20,width_shift_range=0.15, height_shift_range=0.15, horizontal_flip=True)
+datagen = keras.preprocessing.image.ImageDataGenerator(rotation_range=20,width_shift_range=0.15,
+                                                       height_shift_range=0.15, horizontal_flip=True)
 
 # load images
 images_without_bgr = [cv2.imread(file) for file in glob.glob("train/without_mask/*.jpg")]
@@ -47,15 +52,16 @@ for i in range(numImages):
 for i in range(numImages):
     images_gray.append(cv2.cvtColor(images_bgr[i], cv2.COLOR_BGR2GRAY))
 
-# cv2.imshow("Prova2", images_gray[255])
-# cv2.waitKey(0)
-
 # set label (0-incorrect, 1-with, 2-without)
 y = np.zeros((numImages,))
 y = np.round(y)
 y = y.astype(int)
 y[numIncorrect:numIncorrect + numWith] = 1
 y[numIncorrect + numWith:numIncorrect + numWith + numNo] = 2
+
+images_gray2 = np.copy(images_gray)
+images_gray2, y = augment_set(images_gray2,y,datagen,10)
+numImages = images_gray2.shape[0]
 
 # get a random permutation of the element
 indexes = np.random.permutation(range(0, numImages))
@@ -69,9 +75,9 @@ index_train = indexes[0:num_train]
 index_val = indexes[num_train:num_train + num_val]
 index_test = indexes[num_train + num_val:num_train + num_val + num_test]
 
-x_train = np.take(images_gray, index_train, axis=0)
-x_val = np.take(images_gray, index_val, axis=0)
-x_test = np.take(images_gray, index_test, axis=0)
+x_train = np.take(images_gray2, index_train, axis=0)
+x_val = np.take(images_gray2, index_val, axis=0)
+x_test = np.take(images_gray2, index_test, axis=0)
 y_train = np.take(y, index_train, axis=0)
 y_val = np.take(y, index_val, axis=0)
 y_test = np.take(y, index_test, axis=0)
@@ -110,13 +116,16 @@ model = keras.models.Sequential([
 model.compile(loss="categorical_crossentropy",
               optimizer='adam',
               metrics=["accuracy"])
-# batch not given
 
-history = model.fit(x_train_scaled, y_train, epochs=20, batch_size=20,
+# batch not given
+history = model.fit(x_train_scaled, y_train, epochs=20, batch_size=50,
                     validation_data=(x_val_scaled, y_val))
 
-plot_loss(history)
-plot_accuracy(history)
+# save model and architecture to single file
+model.save("model.h5")
+
+## load model
+# model = keras.models.load_model('model.h5')
 
 scores = model.evaluate(x_test_scaled, y_test, verbose=2)
 print(" %s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
