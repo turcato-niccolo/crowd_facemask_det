@@ -4,7 +4,7 @@ import numpy as np
 
 class facemask_recognition_model:
     def __init__(self, model_path_file):
-        self.model = keras.models.load_model('model.h5')
+        self.model = keras.models.load_model(model_path_file)
 
     def predict_one(self, image):
         image = cv2.resize(image, (100, 100))
