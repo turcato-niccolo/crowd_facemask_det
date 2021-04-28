@@ -5,13 +5,16 @@ import numpy as np
 import cv2
 import glob
 from utils import *
+import time
+
+def one_hot(n_classes, y):
+    return np.eye(n_classes)[y]
 
 def augment_set(set_x,set_y, generator, num_augmented_images):
     tensor_set = tf.expand_dims(set_x, 3)
     out_set_x = set_x.copy()
     out_set_y = set_y.copy()
-    out_set_x = np.resize(out_set_x, (np.shape(out_set_x)[0]+np.shape(out_set_x)[0]*num_augmented_images,
-                                      np.shape(out_set_x)[1], np.shape(out_set_x)[2]))
+    out_set_x = np.resize(out_set_x, (np.shape(out_set_x)[0]+np.shape(out_set_x)[0]*num_augmented_images, np.shape(out_set_x)[1], np.shape(out_set_x)[2]))
     out_set_y = np.resize(out_set_y, (np.shape(out_set_y)[0]+np.shape(out_set_y)[0]*num_augmented_images),)
     for i in range(set_x.shape[0]):
         it = generator.flow(tf.expand_dims(tensor_set[i], 0), batch_size=1)
@@ -22,21 +25,17 @@ def augment_set(set_x,set_y, generator, num_augmented_images):
             out_set_y[np.shape(set_x)[0]+num_augmented_images*i+j] = set_y[i]
     return out_set_x, out_set_y
 
-def one_hot(n_classes, y):
-    return np.eye(n_classes)[y]
-
 np.random.seed(42)
 
 #create a datagenerator
-datagen = keras.preprocessing.image.ImageDataGenerator(rotation_range=20,width_shift_range=0.15,
-                                                       height_shift_range=0.15, horizontal_flip=True)
+datagen = keras.preprocessing.image.ImageDataGenerator(rotation_range=20,width_shift_range=0.15, height_shift_range=0.15, horizontal_flip=True)
 
 # load images
-images_without_bgr = [cv2.imread(file) for file in glob.glob("train/without_mask/*.jpg")]
+images_without_bgr = [cv2.imread(file) for file in glob.glob("data/train/without_mask/*.jpg")]
 numNo = len(images_without_bgr)
-images_correct_bgr = [cv2.imread(file) for file in glob.glob("train/with_mask/*.jpg")]
+images_correct_bgr = [cv2.imread(file) for file in glob.glob("data/train/with_mask/*.jpg")]
 numWith = len(images_correct_bgr)
-images_incorrect_bgr = [cv2.imread(file) for file in glob.glob("train/mask_weared_incorrect/*.jpg")]
+images_incorrect_bgr = [cv2.imread(file) for file in glob.glob("data/train/mask_weared_incorrect/*.jpg")]
 numIncorrect = len(images_incorrect_bgr)
 
 images_bgr = images_incorrect_bgr + images_correct_bgr + images_without_bgr
@@ -117,18 +116,13 @@ model.compile(loss="categorical_crossentropy",
               optimizer='adam',
               metrics=["accuracy"])
 
-# batch not given
+#batch not given
 history = model.fit(x_train_scaled, y_train, epochs=20, batch_size=50,
                     validation_data=(x_val_scaled, y_val))
-
-# save model and architecture to single file
-model.save("model.h5")
-
-## load model
-# model = keras.models.load_model('model.h5')
 
 scores = model.evaluate(x_test_scaled, y_test, verbose=2)
 print(" %s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
 print("----------------------------")
 
-print(0)
+# save model and architecture to single file
+model.save("model.h5")
