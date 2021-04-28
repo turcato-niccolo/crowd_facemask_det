@@ -2,6 +2,7 @@ import argparse
 import cv2 as cv
 import time
 import numpy as np
+from facemask_recognition_model import *
 
 # RESNETSSD_FACEDETECTOR  face detector based on SSD framework with reduced ResNet-10 backbone
 # https://github.com/opencv/opencv/blob/3.4.0/samples/dnn/face_detector/how_to_train_face_detector.txt
@@ -25,9 +26,13 @@ if not cap.isOpened:
     exit(0)
 
 font = cv.FONT_HERSHEY_SIMPLEX
+color_class = {0: (0, 255, 255), 1: (0, 255, 0), 2: (0, 0, 255)}  # set label (0-incorrect, 1-with, 2-without)
+name_class = {0: "incorrect", 1: "with_mask", 2: "without_mask"}
 
 prev_frame_time = 0
 new_frame_time = 0
+
+facemask_rec_model = facemask_recognition_model("models/facemask_model.h5")
 
 while True:
     ret, frame = cap.read()
@@ -49,7 +54,17 @@ while True:
         if confidence > 0.5:
             box = detections[0, 0, i, 3:7] * np.array([width, height, width, height])
             (x, y, x1, y1) = box.astype(int)
-            frame = cv.rectangle(frame, (x, y), (x1, y1), (0, 0, 255), thickness=4)
+            h = y1 - y
+            w = x1 - x
+            x = int(max(x - w / 4, 0))
+            y = int(max(y - h / 4, 0))
+            x1 = int(min(x1 + w / 4, width - 1))
+            y1 = int(min(y1 + h / 4, height - 1))
+            # frame_label = facemask_rec_model.predict_one(frame[b_y:b_y1, b_x:b_x1])
+            frame_label = facemask_rec_model.predict_one(frame[y:y1, x:x1])
+            cv.rectangle(frame, (x, y), (x1, y1), color_class[frame_label], thickness=4)
+            cv2.rectangle(frame, (x, y - 40), (x1, y), color_class[frame_label], -1)
+            cv2.putText(frame, name_class[frame_label], (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
     new_frame_time = time.time()
 
