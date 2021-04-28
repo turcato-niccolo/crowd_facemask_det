@@ -6,11 +6,11 @@ import glob
 np.random.seed(42)
 
 # load images
-images_without_bgr = [cv2.imread(file) for file in glob.glob("train/without_mask/*.jpg")]
+images_without_bgr = [cv2.imread(file) for file in glob.glob("DATA/senza/*")]
 numNo = len(images_without_bgr)
-images_correct_bgr = [cv2.imread(file) for file in glob.glob("train/with_mask/*.jpg")]
+images_correct_bgr = [cv2.imread(file) for file in glob.glob("DATA/con-bene/*")]
 numWith = len(images_correct_bgr)
-images_incorrect_bgr = [cv2.imread(file) for file in glob.glob("train/mask_weared_incorrect/*.jpg")]
+images_incorrect_bgr = [cv2.imread(file) for file in glob.glob("DATA/con-male/*")]
 numIncorrect = len(images_incorrect_bgr)
 
 out_path = "cropped_dataset"
@@ -23,6 +23,8 @@ model_file_path = 'models/DNN_face_rec/res10_300x300_ssd_iter_140000.caffemodel'
 net = cv2.dnn.readNetFromCaffe(proto_txt_file_path, model_file_path)
 
 for j in range(len(images_bgr)):
+    print(str(j) + " / " + str(len(images_bgr)))
+
     curr_img = images_bgr[j]
     (height, width) = curr_img.shape[:2]
 
@@ -47,10 +49,10 @@ for j in range(len(images_bgr)):
             w = x1 - x
             x = int(max(x - w / 2, 0))
             y = int(max(y - h / 2, 0))
-            x1 = int(min(x1 + w / 2, width-1))
-            y1 = int(min(y1 + h / 2, height-1))
+            x1 = int(min(x1 + w / 2, width - 1))
+            y1 = int(min(y1 + h / 2, height - 1))
             if x in range(width) and y in range(height) and x1 in range(width) and y1 in range(height):
-                img = curr_img[x:x1, y:y1]
+                img = curr_img[y:y1, x:x1]  # [row, column]
                 if img.shape[0] > 0 and img.shape[1] > 0:
                     cv2.imwrite(class_out_path + "/" + str(j) + "_" + str(i) + ".jpg", img)
                     cnt += 1
