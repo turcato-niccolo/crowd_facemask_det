@@ -48,6 +48,7 @@ while True:
 
     net.setInput(blob)
     detections = net.forward()
+
     for i in range(0, detections.shape[2]):
         confidence = detections[0, 0, i, 2]
 
