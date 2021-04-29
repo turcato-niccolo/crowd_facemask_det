@@ -33,7 +33,6 @@ prev_frame_time = 0
 new_frame_time = 0
 
 facemask_rec_model = facemask_recognition_model("models/facemask_model.h5")
-(mean, std) = np.load("models/model_values.csv")
 
 while True:
     ret, frame = cap.read()
