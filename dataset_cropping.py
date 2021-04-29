@@ -6,7 +6,7 @@ import glob
 np.random.seed(42)
 
 # load images
-images_without_bgr = [cv2.imread(file) for file in glob.glob("DATA/senza/*")]
+images_without_bgr = [cv2.imread(file) for file in glob.glob("DATA/*")]
 numNo = len(images_without_bgr)
 images_correct_bgr = [cv2.imread(file) for file in glob.glob("DATA/con-bene/*")]
 numWith = len(images_correct_bgr)
@@ -39,7 +39,6 @@ for j in range(len(images_bgr)):
 
     net.setInput(blob)
     detections = net.forward()
-    cnt = 0
     for i in range(0, detections.shape[2]):
         confidence = detections[0, 0, i, 2]
         if confidence > 0.5:
@@ -54,7 +53,5 @@ for j in range(len(images_bgr)):
             if x in range(width) and y in range(height) and x1 in range(width) and y1 in range(height):
                 img = curr_img[y:y1, x:x1]  # [row, column]
                 if img.shape[0] > 0 and img.shape[1] > 0:
-                    cv2.imwrite(class_out_path + "/" + str(j) + "_" + str(i) + ".jpg", img)
-                    cnt += 1
-    if cnt == 0:
-        cv2.imwrite(class_out_path + "/" + str(j) + ".jpg", curr_img)
+                    cv2.imwrite("cropped_dataset" + "/" + str(j) + "_" + str(i) + ".jpg", img)
+
