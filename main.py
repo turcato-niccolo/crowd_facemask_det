@@ -1,5 +1,4 @@
 import timeit
 
 if __name__ == '__main__':
-    # exec(open("face_det_ResNetSSD.py").read())
-    print("hello world")
+    exec(open("face_det_ResNetSSD.py").read())
