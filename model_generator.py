@@ -7,23 +7,28 @@ import glob
 from utils import *
 import time
 
+
 def one_hot(n_classes, y):
     return np.eye(n_classes)[y]
 
-def augment_set(set_x,set_y, generator, num_augmented_images):
+
+def augment_set(set_x, set_y, generator, num_augmented_images):
     tensor_set = tf.expand_dims(set_x, 3)
     out_set_x = set_x.copy()
     out_set_y = set_y.copy()
-    out_set_x = np.resize(out_set_x, (np.shape(out_set_x)[0]+np.shape(out_set_x)[0]*num_augmented_images, np.shape(out_set_x)[1], np.shape(out_set_x)[2]))
-    out_set_y = np.resize(out_set_y, (np.shape(out_set_y)[0]+np.shape(out_set_y)[0]*num_augmented_images),)
+    out_set_x = np.resize(out_set_x, (
+        np.shape(out_set_x)[0] + np.shape(out_set_x)[0] * num_augmented_images, np.shape(out_set_x)[1],
+        np.shape(out_set_x)[2]))
+    out_set_y = np.resize(out_set_y, (np.shape(out_set_y)[0] + np.shape(out_set_y)[0] * num_augmented_images), )
     for i in range(set_x.shape[0]):
         it = generator.flow(tf.expand_dims(tensor_set[i], 0), batch_size=1)
         for j in range(num_augmented_images):
             # generate batch of images
             batch = it.next()
-            out_set_x[np.shape(set_x)[0]+num_augmented_images*i+j] = batch[0].astype('uint8')[:,:,0]
-            out_set_y[np.shape(set_x)[0]+num_augmented_images*i+j] = set_y[i]
+            out_set_x[np.shape(set_x)[0] + num_augmented_images * i + j] = batch[0].astype('uint8')[:, :, 0]
+            out_set_y[np.shape(set_x)[0] + num_augmented_images * i + j] = set_y[i]
     return out_set_x, out_set_y
+
 
 np.random.seed(42)
 
@@ -39,8 +44,10 @@ if gpus:
         # Memory growth must be set before GPUs have been initialized
         print(e)
 
-#create a datagenerator
-datagen = keras.preprocessing.image.ImageDataGenerator(rotation_range=45,width_shift_range=0.15, height_shift_range=0.15, horizontal_flip=True)
+# create a datagenerator
+datagen = keras.preprocessing.image.ImageDataGenerator(rotation_range=45, width_shift_range=0.15,
+                                                       height_shift_range=0.15, horizontal_flip=True,
+                                                       brightness_range=(1., 1.))
 
 # load images
 images_without_bgr = [cv2.imread(file) for file in glob.glob("DATASET/without_mask/*")]
@@ -71,7 +78,7 @@ y[numIncorrect:numIncorrect + numWith] = 1
 y[numIncorrect + numWith:numIncorrect + numWith + numNo] = 2
 
 images_gray2 = np.copy(images_gray)
-images_gray2, y = augment_set(images_gray2,y,datagen,10)
+images_gray2, y = augment_set(images_gray2, y, datagen, 15)
 numImages = images_gray2.shape[0]
 
 # get a random permutation of the element
@@ -96,9 +103,13 @@ y_test = np.take(y, index_test, axis=0)
 # normalization
 mean_train = np.mean(x_train, axis=0)
 std_train = np.std(x_train, axis=0)
-x_train_scaled = (x_train - mean_train) / std_train
-x_val_scaled = (x_val - mean_train) / std_train
-x_test_scaled = (x_test - mean_train) / std_train
+
+#x_train_scaled = (x_train - mean_train) / std_train
+x_train_scaled = x_train
+#x_val_scaled = (x_val - mean_train) / std_train
+x_val_scaled = x_val
+#x_test_scaled = (x_test - mean_train) / std_train
+x_test_scaled = x_test
 
 x_train_scaled = tf.expand_dims(x_train_scaled, 3)
 y_train = one_hot(3, y_train)
@@ -112,11 +123,11 @@ x_test_scaled = tf.expand_dims(x_test_scaled, 3)
 y_test = one_hot(3, y_test)
 y_test = tf.convert_to_tensor(y_test)
 
-
 alpha = 0.0001
 # create cnn
 model = keras.models.Sequential([
-    keras.layers.Conv2D(filters=200, kernel_size=[3, 3], padding="valid", activation="relu", input_shape=[100, 100, 1],
+    keras.layers.BatchNormalization(input_shape=[100, 100, 1]),
+    keras.layers.Conv2D(filters=200, kernel_size=[4, 4], padding="valid", activation="relu",
                         kernel_regularizer=tf.keras.regularizers.L2(alpha)),
     keras.layers.MaxPool2D(pool_size=[3, 3]),
     keras.layers.Conv2D(filters=100, kernel_size=[3, 3], activation="relu",
@@ -128,15 +139,16 @@ model = keras.models.Sequential([
     keras.layers.Dense(3, activation="softmax", kernel_regularizer=tf.keras.regularizers.L1(alpha))
 ])
 
-opt= tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07)
+opt = tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07)
 
 model.compile(loss="categorical_crossentropy",
               optimizer=opt,
               metrics=["accuracy"])
+callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
 
-#batch not given
-history = model.fit(x_train_scaled, y_train, epochs=30, batch_size=50,
-                    validation_data=(x_val_scaled, y_val))
+# batch not given
+history = model.fit(x_train_scaled, y_train, epochs=100, batch_size=50,
+                    validation_data=(x_val_scaled, y_val), callbacks=[callback])
 
 scores = model.evaluate(x_test_scaled, y_test, verbose=2)
 print(" %s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))

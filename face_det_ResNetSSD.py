@@ -33,6 +33,7 @@ prev_frame_time = 0
 new_frame_time = 0
 
 facemask_rec_model = facemask_recognition_model("models/facemask_model.h5")
+(mean, std) = np.load("models/model_values.csv")
 
 while True:
     ret, frame = cap.read()
@@ -57,10 +58,10 @@ while True:
             (x, y, x1, y1) = box.astype(int)
             h = y1 - y
             w = x1 - x
-            x = int(max(x - w / 4, 0))
-            y = int(max(y - h / 4, 0))
-            x1 = int(min(x1 + w / 4, width - 1))
-            y1 = int(min(y1 + h / 4, height - 1))
+            x = int(max(x - w / 2, 0))
+            y = int(max(y - h / 2, 0))
+            x1 = int(min(x1 + w / 2, width - 1))
+            y1 = int(min(y1 + h / 2, height - 1))
             # frame_label = facemask_rec_model.predict_one(frame[b_y:b_y1, b_x:b_x1])
             frame_label = facemask_rec_model.predict_one(frame[y:y1, x:x1])
             cv.rectangle(frame, (x, y), (x1, y1), color_class[frame_label], thickness=4)
