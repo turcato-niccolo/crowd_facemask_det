@@ -15,8 +15,7 @@ def bind_camera(parser):
     cap = cv.VideoCapture(camera_device)
 
     if not cap.isOpened:
-        print('--(!)Error opening video capture')
-        exit(0)
+        raise CameraBindFailedError()
     return cap
 
 
