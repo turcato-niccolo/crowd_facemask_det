@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 
 
-class facemask_recognition_model:
+class FacemaskRecognitionModel:
     def __init__(self, model_path_file):
         self.model = keras.models.load_model(model_path_file)
 
