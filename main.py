@@ -44,6 +44,9 @@ def start(camera):
     frame_time = time.time()
     while True:
         ret, frame = camera.read()
+        if frame is None:
+            print('--(!) No captured frame -- Break!')
+            break
         (height, width) = frame.shape[:2]
         faces = face_cropper_net.crop(frame)
 

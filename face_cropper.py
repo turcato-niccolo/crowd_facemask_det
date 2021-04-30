@@ -33,5 +33,5 @@ class FaceCropperResNetSSD:
                 y = int(max(y - h / 3, 0))
                 x1 = int(min(x1 + w / 3, width - 1))
                 y1 = int(min(y1 + h / 3, height - 1))
-                faces.append(((x, y, x1, y1), confidence))  # TODO may exist something like a ROI o a Rectangle
+                faces.append(((x, y, x1, y1), confidence))
         return faces
