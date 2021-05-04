@@ -46,24 +46,6 @@ def resize_images(images, sizex, sizey):
     return np.array(images)
 
 
-def augment_set(set_x, set_y, generator, num_augmented_images):
-    tensor_set = tf.expand_dims(set_x, 3)
-    out_set_x = set_x.copy()
-    out_set_y = set_y.copy()
-    out_set_x = np.resize(out_set_x, (
-        np.shape(out_set_x)[0] + np.shape(out_set_x)[0] * num_augmented_images, np.shape(out_set_x)[1],
-        np.shape(out_set_x)[2]))
-    out_set_y = np.resize(out_set_y, (np.shape(out_set_y)[0] + np.shape(out_set_y)[0] * num_augmented_images), )
-    for i in range(set_x.shape[0]):
-        it = generator.flow(tf.expand_dims(tensor_set[i], 0), batch_size=1)
-        for j in range(num_augmented_images):
-            # generate batch of images
-            batch = it.next()
-            out_set_x[np.shape(set_x)[0] + num_augmented_images * i + j] = batch[0].astype('uint8')[:, :, 0]
-            out_set_y[np.shape(set_x)[0] + num_augmented_images * i + j] = set_y[i]
-    return out_set_x, out_set_y
-
-
 np.random.seed(42)
 
 gpus = tf.config.list_physical_devices('GPU')
@@ -79,7 +61,7 @@ if gpus:
         print(e)
 
 # create a datagenerator
-datagen = keras.preprocessing.image.ImageDataGenerator(rotation_range=30, width_shift_range=0.15,
+datagen = keras.preprocessing.image.ImageDataGenerator(rotation_range=45, width_shift_range=0.15,
                                                        height_shift_range=0.15, horizontal_flip=True,
                                                        brightness_range=(1., 1.))
 
@@ -105,11 +87,14 @@ images_incorrect_gray = convert_images_bgr_gray(images_incorrect_gray)
 images_correct_gray = resize_images(images_correct_bgr, 100, 100)
 images_correct_gray = convert_images_bgr_gray(images_correct_gray)
 
-images_without_gray = augmentImages(images_without_gray, datagen, int(np.ceil(max_images_class / numNo) * 10))
+augmentation_mult = 15
 
-images_incorrect_gray = augmentImages(images_incorrect_gray, datagen, int(np.ceil(max_images_class / numIncorrect) * 10))
+images_without_gray = augmentImages(images_without_gray, datagen, int(np.ceil(max_images_class / numNo) * augmentation_mult))
 
-images_correct_gray = augmentImages(images_correct_gray, datagen, int(np.ceil(max_images_class / numWith) * 10))
+images_incorrect_gray = augmentImages(images_incorrect_gray, datagen,
+                                      int(np.ceil(max_images_class / numIncorrect) * augmentation_mult))
+
+images_correct_gray = augmentImages(images_correct_gray, datagen, int(np.ceil(max_images_class / numWith) * augmentation_mult))
 
 images_gray = np.concatenate((images_incorrect_gray, images_correct_gray, images_without_gray), axis=0)
 
@@ -186,16 +171,13 @@ model.compile(loss="categorical_crossentropy",
               metrics=["accuracy"])
 callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
 
-# history = model.fit(x_train_scaled, y_train, epochs=100, batch_size=50, validation_data=(x_val_scaled, y_val), callbacks=[callback])
-
 # Fit data generator
 
-datagen = keras.preprocessing.image.ImageDataGenerator(rotation_range=45, width_shift_range=0.15,
-                                                       height_shift_range=0.15, horizontal_flip=True,
-                                                       brightness_range=(1., 1.))
-datagen.fit(x_train)
-history = model.fit(datagen.flow(x_train, y_train, batch_size=100), epochs=100, validation_data=(x_val, y_val),
-                    callbacks=[callback])
+# datagen = keras.preprocessing.image.ImageDataGenerator(rotation_range=45, width_shift_range=0.15, height_shift_range=0.15, horizontal_flip=True, brightness_range=(1., 1.))
+# datagen.fit(x_train)
+
+history = model.fit(x_train, y_train, epochs=100, batch_size=50, validation_data=(x_val, y_val), callbacks=[callback])
+# history = model.fit(datagen.flow(x_train, y_train, batch_size=100), epochs=100, validation_data=(x_val, y_val), callbacks=[callback])
 
 scores = model.evaluate(x_test, y_test, verbose=2)
 print(" %s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))

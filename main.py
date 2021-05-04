@@ -41,7 +41,7 @@ def start(camera):
     face_cropper_net = FaceCropperResNetSSD()
 
     frame_time = time.time()
-    while True:
+    while camera.isOpened():
         ret, frame = camera.read()
         if frame is None:
             print('--(!) No captured frame -- Break!')
