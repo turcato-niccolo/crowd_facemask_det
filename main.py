@@ -37,7 +37,7 @@ def start(camera):
     color_class = {0: (0, 255, 255), 1: (0, 255, 0), 2: (0, 0, 255)}  # set label (0-incorrect, 1-with, 2-without)
     name_class = {0: "incorrect", 1: "with_mask", 2: "without_mask"}
 
-    facemask_rec_model = FacemaskRecognitionModel("models/facemask_model.h5")
+    facemask_rec_model = FacemaskRecognitionModel("models/better_facemask_model.h5")
     face_cropper_net = FaceCropperResNetSSD()
 
     frame_time = time.time()

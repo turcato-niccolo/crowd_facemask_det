@@ -16,7 +16,7 @@ class FaceCropperResNetSSD:
         faces = list()
         (height, width) = image.shape[:2]
 
-        blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0, (300, 300))
+        blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0, (300, 300), (104, 177, 123))
 
         self.net.setInput(blob)
         detections = self.net.forward()
