@@ -1,10 +1,12 @@
 import argparse
 import cv2 as cv
 import time
-import numpy as np
 from face_recognition_model import *
 from face_cropper import *
+import pyvirtualcam
 
+color_class = {0: (0, 255, 255), 1: (0, 255, 0), 2: (0, 0, 255)}  # set label (0-incorrect, 1-with, 2-without)
+name_class = {0: "incorrect", 1: "with_mask", 2: "without_mask"}
 
 def bind_camera(parser):
     parser.add_argument('--camera', help='Camera divide number.', type=int, default=0)
@@ -34,9 +36,6 @@ def put_label(frame, ROI, label, color, font=cv.FONT_HERSHEY_SIMPLEX):
 
 
 def start(camera):
-    color_class = {0: (0, 255, 255), 1: (0, 255, 0), 2: (0, 0, 255)}  # set label (0-incorrect, 1-with, 2-without)
-    name_class = {0: "incorrect", 1: "with_mask", 2: "without_mask"}
-
     facemask_rec_model = FacemaskRecognitionModel("models/facemask_model.h5")
     face_cropper_net = FaceCropperResNetSSD()
 
@@ -63,11 +62,54 @@ def start(camera):
         if cv.waitKey(1) == 27:
             break
 
+def start_virtual_webcam(camera):
+    '''
+    https://github.com/letmaik/pyvirtualcam
+    '''
+    facemask_rec_model = FacemaskRecognitionModel("models/better_facemask_model.h5")
+    face_cropper_net = FaceCropperResNetSSD()
+
+    frame_time = time.time()
+    if camera.isOpened():
+        ret, frame = camera.read()
+        if frame is None:
+            print('--(!) No captured frame -- Break!')
+            return
+        (real_cam_height, real_cam_width) = frame.shape[:2]
+
+        with pyvirtualcam.Camera(width=real_cam_width, height=real_cam_height, fps=24) as cam:
+            print(f'Using virtual camera: {cam.device}')
+            while camera.isOpened():
+                ret, frame = camera.read()
+                if frame is None:
+                    print('--(!) No captured frame -- Break!')
+                    break
+                faces = face_cropper_net.crop(frame)
+
+                for face in faces:
+                    (ROI, confidence) = face
+                    (x, y, x1, y1) = ROI
+                    blob = frame[y:y1, x:x1]
+                    if blob.size != 0:
+                        frame_label = facemask_rec_model.predict_one(blob)
+                        put_label(frame, ROI, name_class[frame_label], color_class[frame_label])
+
+                frame_time = update_fps(frame, frame_time)
+                cv.imshow("Face detection - Webcam output", frame)
+
+                cam.send(cv.cvtColor(frame, cv.COLOR_BGR2RGB))
+                cam.sleep_until_next_frame()
+
+                if cv.waitKey(1) == 27:
+                    break
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Code for Face detection.')
     cap = bind_camera(parser)
-    start(cap)
+    #start(cap)
+    start_virtual_webcam(cap)
+
 
 
 class CameraBindFailedError(RuntimeError):
