@@ -90,22 +90,23 @@ def copeland_voting(mj_graph):
         scores_from_graph[node] = len(mj_graph.out_edges(node)) - len(mj_graph.in_edges(node))
     return scores_from_graph
 
-
-
+def one_hot2vote(one_hot_):
+    """ It essentially returns the indices of the vector ordered in descend order
+    :param      one_hot_: one_hot vector representing a vote (must have positive entries)
+    :return:    the vote corresponding to the one_hot vector: [first-choice, second-choice, ..], where the choices are
+                indices of the vector
+    """
+    one_hot = one_hot_
+    vote = []
+    for i in range(len(one_hot)):
+        candidate_tag = np.argmax(one_hot)
+        vote.append(candidate_tag)
+        one_hot[candidate_tag] = -1
+    return vote
 
 if __name__ == '__main__':
     plurality_rule = lambda preferences, candidate_of_interest: 1 if preferences[0] == candidate_of_interest else 0
-    sep = ','
-    candidates = load_candidates("candidates.txt", sep)
-    print(candidates)
-    votes = load_votes("exercise1.txt", sep)
-    print(votes)
+    print(one_hot2vote([0.3, 0.5, 0.2]))
 
-    plurality_scores = apply_voting(votes, plurality_rule, candidates.keys())
-    print_scores(candidates, plurality_scores)
-
-    majority_graph = create_majority_graph(votes, candidates)
-    print(copeland_voting(majority_graph))
-    draw_mj_graph(majority_graph)
 
 
