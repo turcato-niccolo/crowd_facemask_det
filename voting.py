@@ -4,6 +4,9 @@ import networkx as nx
 import itertools as it
 import matplotlib.pyplot as plt
 
+plurality_voting_rule = lambda preferences, candidate_of_interest: 1 if preferences[0] == candidate_of_interest else 0
+approval2_voting_rule = lambda preferences, candidate_of_interest: 1 if candidate_of_interest in preferences[0:2] else 0
+borda_voting_rule = lambda preferences, candidate_of_interest: len(preferences)-preferences.index(candidate_of_interest)
 
 def load_candidates(filename, separator):
     candidates_ = defaultdict()

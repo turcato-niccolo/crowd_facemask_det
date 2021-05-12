@@ -2,6 +2,8 @@ import argparse
 import cv2 as cv
 import time
 import numpy as np
+from setuptools import glob
+import voting
 from face_recognition_model import *
 from face_cropper import *
 
@@ -37,7 +39,8 @@ def start(camera):
     color_class = {0: (0, 255, 255), 1: (0, 255, 0), 2: (0, 0, 255)}  # set label (0-incorrect, 1-with, 2-without)
     name_class = {0: "incorrect", 1: "with_mask", 2: "without_mask"}
 
-    facemask_rec_model = FacemaskRecognitionModel("models/better_facemask_model.h5")
+    #facemask_rec_model = FacemaskRecognitionModel("models/better_facemask_model.h5")
+    facemask_rec_model = FacemaskRecognitionModelFromEnsemble(glob.glob("models/ensemble/ensemble*_model.h5"))
     face_cropper_net = FaceCropperResNetSSD()
 
     frame_time = time.time()
@@ -54,7 +57,8 @@ def start(camera):
             (x, y, x1, y1) = ROI
             blob = frame[y:y1, x:x1]
             if blob.size != 0:
-                frame_label = facemask_rec_model.predict_one(blob)
+                #frame_label = facemask_rec_model.predict_one(blob)
+                frame_label = facemask_rec_model.predict_one(blob, voting.plurality_voting_rule, 3, preprocess=True)
                 put_label(frame, ROI, name_class[frame_label], color_class[frame_label])
 
         frame_time = update_fps(frame, frame_time)
